@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NicFwBtCore.MainPage">
+
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="30,0"
+            Spacing="25">
+            <Button IsEnabled="False" x:Name="StartScan" Text="Start Bluetooth Scan" Clicked="Button_Clicked"/>
+            <ActivityIndicator x:Name="Activity"/>
+            <Label x:Name="Status" HorizontalTextAlignment="Center" />
+            <Picker HorizontalTextAlignment="Center" SelectedIndexChanged="Devices_SelectedIndexChanged" IsEnabled="False" x:Name="Devices"/>
+            <Button x:Name="ConnectButton" Text="Connect" IsEnabled="False" Clicked="ConnectButton_Clicked"/>
+            <Label x:Name="ChannelInfo" HorizontalTextAlignment="Center"/>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
