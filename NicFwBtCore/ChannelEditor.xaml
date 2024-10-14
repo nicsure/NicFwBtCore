@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NicFwBtCore.ChannelEditor"
+             Title="Channel Editor">
+    <ScrollView>
+        <VerticalStackLayout Margin="10,0,0,0" Spacing="5">
+            <HorizontalStackLayout>
+                <Label Text="Channel Number" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <Picker x:Name="ChannelNum" WidthRequest="100" SelectedIndexChanged="ChannelNum_SelectedIndexChanged"/>
+                <Button x:Name="ChannelDown" Text="-" Margin="10,0,0,0" Clicked="ChannelDown_Clicked"/>
+                <Button x:Name="ChannelUp" Text="+" Margin="10,0,0,0" Clicked="ChannelUp_Clicked"/>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout>
+                <Label Text="Active" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <CheckBox x:Name="Active" CheckedChanged="Value_Changed"/>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout IsVisible="{Binding Source={x:Reference Active}, Path=IsChecked}">
+                <Label Text="Name" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <Entry x:Name="Name" WidthRequest="150" Completed="Value_Changed" Unfocused="Value_Changed"/>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout IsVisible="{Binding Source={x:Reference Active}, Path=IsChecked}">
+                <Label Text="RX Frequency" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <Entry x:Name="RXFreq" WidthRequest="150" Completed="Value_Changed" Unfocused="Value_Changed"/>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout IsVisible="{Binding Source={x:Reference Active}, Path=IsChecked}">
+                <Label Text="TX Frequency" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <Entry x:Name="TXFreq" WidthRequest="150" Completed="Value_Changed" Unfocused="Value_Changed"/>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout IsVisible="{Binding Source={x:Reference Active}, Path=IsChecked}">
+                <Label Text="RX Tone" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <Entry x:Name="RXTone" WidthRequest="150" Completed="Value_Changed" Unfocused="Value_Changed"/>
+                <Picker x:Name="RxCTS" Margin="10,0,0,0" SelectedIndexChanged="Subtone_SelectedIndexChanged">
+                    <Picker.Items>
+                        <x:String>CTS</x:String>
+                    </Picker.Items>
+                </Picker>
+                <Picker x:Name="RxDCS" Margin="10,0,0,0" SelectedIndexChanged="Subtone_SelectedIndexChanged">
+                    <Picker.Items>
+                        <x:String>DCS</x:String>
+                    </Picker.Items>
+                </Picker>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout IsVisible="{Binding Source={x:Reference Active}, Path=IsChecked}">
+                <Label Text="TX Tone" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <Entry x:Name="TXTone" WidthRequest="150" Completed="Value_Changed" Unfocused="Value_Changed"/>
+                <Picker x:Name="TxCTS" Margin="10,0,0,0" SelectedIndexChanged="Subtone_SelectedIndexChanged">
+                    <Picker.Items>
+                        <x:String>CTS</x:String>
+                    </Picker.Items>
+                </Picker>
+                <Picker x:Name="TxDCS" Margin="10,0,0,0" SelectedIndexChanged="Subtone_SelectedIndexChanged">
+                    <Picker.Items>
+                        <x:String>DCS</x:String>
+                    </Picker.Items>
+                </Picker>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout IsVisible="{Binding Source={x:Reference Active}, Path=IsChecked}">
+                <Label Text="TX Power" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <Entry x:Name="TXPower" WidthRequest="150" Completed="Value_Changed" Unfocused="Value_Changed"/>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout IsVisible="{Binding Source={x:Reference Active}, Path=IsChecked}">
+                <Label Text="Groups" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <Entry x:Name="Groups" WidthRequest="150" Completed="Value_Changed" Unfocused="Value_Changed"/>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout IsVisible="{Binding Source={x:Reference Active}, Path=IsChecked}">
+                <Label Text="Modulation" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <Picker x:Name="Modulation" WidthRequest="150" SelectedIndexChanged="Value_Changed">
+                    <Picker.Items>
+                        <x:String>Auto</x:String>
+                        <x:String>FM</x:String>
+                        <x:String>AM</x:String>
+                        <x:String>USB</x:String>
+                    </Picker.Items>
+                </Picker>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout IsVisible="{Binding Source={x:Reference Active}, Path=IsChecked}">
+                <Label Text="Bandwidth" VerticalTextAlignment="Center" WidthRequest="150"/>
+                <Picker x:Name="Bandwidth" WidthRequest="150" SelectedIndexChanged="Value_Changed">
+                    <Picker.Items>
+                        <x:String>Wide</x:String>
+                        <x:String>Narrow</x:String>
+                    </Picker.Items>
+                </Picker>
+            </HorizontalStackLayout>
+            <Button Text="Go Back" Clicked="Button_Clicked" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

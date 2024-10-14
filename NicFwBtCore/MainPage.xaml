@@ -11,8 +11,9 @@
             <ActivityIndicator x:Name="Activity"/>
             <Label x:Name="Status" HorizontalTextAlignment="Center" />
             <Picker HorizontalTextAlignment="Center" SelectedIndexChanged="Devices_SelectedIndexChanged" IsEnabled="False" x:Name="Devices"/>
-            <Button x:Name="ConnectButton" Text="Connect" IsEnabled="False" Clicked="ConnectButton_Clicked"/>
-            <Label x:Name="ChannelInfo" HorizontalTextAlignment="Center"/>
+            <Button x:Name="ChannelRead" Text="Read Channels" IsEnabled="False" Clicked="ChannelRead_Clicked"/>
+            <Button x:Name="ChannelView" Text="View Channels" IsEnabled="True" Clicked="ChannelView_Clicked"/>
+            <Button x:Name="ChannelWrite" Text="Write Channels" IsEnabled="False" Clicked="ChannelWrite_Clicked"/>
         </VerticalStackLayout>
     </ScrollView>
 

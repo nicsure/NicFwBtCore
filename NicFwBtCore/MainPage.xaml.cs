@@ -3,6 +3,7 @@ using Plugin.BLE.Abstractions.Contracts;
 using Plugin.BLE.Abstractions.EventArgs;
 using Plugin.BLE.Abstractions.Extensions;
 using Plugin.BLE.Extensions;
+using System;
 using System.Text;
 
 namespace NicFwBtCore
@@ -11,6 +12,8 @@ namespace NicFwBtCore
     {
         private readonly List<IDevice> discoveredDevices = [];
         private readonly Queue<byte> input = [];
+        private ICharacteristic? reader = null, writer = null;
+        private IDevice? tdh3 = null;
 
         public MainPage()
         {
@@ -58,9 +61,11 @@ namespace NicFwBtCore
 
         private async Task Bluetooth_Scan()
         {
-            ConnectButton.IsEnabled = false;
+            ChannelRead.IsEnabled = false;
+            ChannelWrite.IsEnabled = false;
             StartScan.IsEnabled = false;
             Activity.IsRunning = true;
+            ChannelView.IsEnabled = false;
             Devices.IsEnabled = false;
             Devices.Items.Clear();
             foreach(var device in discoveredDevices)
@@ -84,6 +89,7 @@ namespace NicFwBtCore
                 Devices.SelectedIndex = 0;
             }
             StartScan.IsEnabled = true;
+            ChannelView.IsEnabled = true;
             adapter.DeviceDiscovered -= Adapter_DeviceDiscovered;
         }
 
@@ -94,31 +100,46 @@ namespace NicFwBtCore
 
         private void Devices_SelectedIndexChanged(object sender, EventArgs e)
         {
-            ConnectButton.IsEnabled = Devices.SelectedIndex >= 0;
+            ChannelRead.IsEnabled = Devices.SelectedIndex >= 0;
+            ChannelWrite.IsEnabled = Devices.SelectedIndex >= 0;
         }
 
-        private void ConnectButton_Clicked(object sender, EventArgs e)
+        private async void ChannelRead_Clicked(object sender, EventArgs e)
         {
-            _ = Bluetooth_Connect();
+            if(await Bluetooth_Connect2())
+            {
+                await ReadChannels();
+            }
         }
 
-        private async Task Bluetooth_Connect()
+        private async void ChannelWrite_Clicked(object sender, EventArgs e)
         {
-            ChannelInfo.Text = string.Empty;
-            ConnectButton.IsEnabled = false;
+            if (await Bluetooth_Connect2())
+            {
+                await WriteChannels();
+            }
+        }
+
+        private async Task<bool> Bluetooth_Connect2()
+        {
+            ChannelRead.IsEnabled = false;
+            ChannelWrite.IsEnabled = false;
             StartScan.IsEnabled = false;
             Activity.IsRunning = true;
+            ChannelView.IsEnabled = false;
             Devices.IsEnabled = false;
             Status.Text = $"Connecting to {Devices.SelectedItem}.";
+            string? failure = null;
             var adapter = CrossBluetoothLE.Current.Adapter;
-            var tdh3 = discoveredDevices[Devices.SelectedIndex];
+            tdh3 = discoveredDevices[Devices.SelectedIndex];
             try
             {
                 await adapter.ConnectToDeviceAsync(tdh3);
                 Status.Text = "Enumerating Services";
                 var services = await tdh3.GetServicesAsync();
                 Status.Text = "Enumerating Characteristics";
-                ICharacteristic? reader = null, writer = null;
+                reader = null;
+                writer = null;
                 foreach (var service in services)
                 {
                     if (service.Id.PartialFromUuid().ToLower().Equals("0xff00"))
@@ -142,126 +163,166 @@ namespace NicFwBtCore
                     }
                 }
                 if (reader == null || writer == null)
-                    Status.Text = "Unable to negotiate communication.";
+                    failure = "Unable to negotiate communication.";
                 else
                 {
                     input.Clear();
-                    Status.Text = "Reading Channel 1.";
-                    reader.ValueUpdated += (s, e) => 
+                    reader.ValueUpdated += (s, e) =>
                     {
-                        foreach(byte b in e.Characteristic.Value)
+                        foreach (byte b in e.Characteristic.Value)
                             input.Enqueue(b);
                     };
-                    await reader.StartUpdatesAsync();
-                    string? failure = null;                    
-                    do
+                    await reader.StartUpdatesAsync();                    
+                    await writer.WriteAsync([0x45]);
+                    if (await GetByte() != 0x45)
                     {
-                        await writer.WriteAsync([0x45]);
-                        if (await GetByte() != 0x45)
-                        {
-                            failure = "No Handshake ACK.";
-                            break;
-                        }
-                        await writer.WriteAsync([0x30, 0x02]);
-                        if (await GetByte() != 0x30)
-                        {
-                            failure = "No Block Read ACK.";
-                            break;
-                        }
-                        byte[] channel1 = new byte[32];
-                        byte cs = 0;
-                        for (int i = 0; i < channel1.Length; i++)
-                        {
-                            int b = await GetByte();
-                            if (b == -1)
-                            {
-                                failure = "Timeout during channel read.";
-                                break;
-                            }
-                            cs += (byte)b;
-                            channel1[i] = (byte)b;
-                        }
-                        if (failure != null) break;
-                        if (await GetByte() != cs)
-                        {
-                            failure = "Bad checksum in channel data.";
-                            break;
-                        }
-                        int rx = BitConverter.ToInt32(channel1, 0);
-                        int tx = BitConverter.ToInt32(channel1, 4);
-                        int rxst = BitConverter.ToUInt16(channel1, 8);
-                        int txst = BitConverter.ToUInt16(channel1, 10);
-                        int txpwr = channel1[12];
-                        int groupw = BitConverter.ToUInt16(channel1, 13);
-                        int modbw = channel1[15];
-                        string name = Encoding.ASCII.GetString(channel1, 20, 12).Trim('\0');
-                        ChannelInfo.Text =
-                            $"Channel 001\r\n\r\n" +
-                            $"RX Freq : {rx / 100000.0:F5}\r\n" +
-                            $"TX Freq : {tx / 100000.0:F5}\r\n" +
-                            $"RX Subtone : {SubTone(rxst)}\r\n" +
-                            $"TX Subtone : {SubTone(txst)}\r\n" +
-                            $"TX Power : {txpwr}\r\n" +
-                            $"Groups : {Groups(groupw)}\r\n" +
-                            $"Modulation : {Modulation((modbw >> 1) & 3)}\r\n" +
-                            $"Bandwidth : {((modbw & 1) == 0 ? "Wide" : "Narrow")}\r\n" +
-                            $"Name : {name}";
+                        failure = "No Handshake ACK.";
                     }
-                    while (false);
-                    if (failure != null)
-                        Status.Text = failure;
                 }
-
             }
-            catch 
+            catch
             {
-                Status.Text = $"Connection to {Devices.SelectedItem} failed.";
+                failure = $"Connection to {Devices.SelectedItem} failed.";
             }
+            if(failure != null)
+            {
+                try
+                {
+                    await adapter.DisconnectDeviceAsync(tdh3);
+                }
+                catch { }
+                Status.Text = failure;
+                ChannelRead.IsEnabled = true;
+                ChannelWrite.IsEnabled = true;
+                StartScan.IsEnabled = true;
+                Activity.IsRunning = false;
+                ChannelView.IsEnabled = true;
+                Devices.IsEnabled = true;
+                return false;
+            }
+            return true;
+        }
+
+        private async Task WriteChannels()
+        {
+            var adapter = CrossBluetoothLE.Current.Adapter;
+            string? failure = null;
+            if (reader != null && writer != null && tdh3 != null)
+            {
+                for (int chan = 1; chan < 199; chan++)
+                {
+                    Status.Text = $"Writing Channel {chan}.";
+                    Channel channel = Channel.Get(chan);
+                    try
+                    {
+                        await writer.WriteAsync([0x31, (byte)(chan + 1)]);
+                        await writer.WriteAsync(channel.Data);
+                        byte cs = 0;
+                        foreach(byte b in channel.Data)
+                            cs += b;
+                        await writer.WriteAsync([cs]);
+                        int ack = await GetByte();
+                        if (ack != 0x31)
+                        {
+                            failure = "No Block Write ACK.";
+                            break;
+                        }
+                    }
+                    catch
+                    {
+                        failure = "Communication exception";
+                        break;
+                    }
+                }
+                try { await writer.WriteAsync([0x49]); } catch { }
+            }
+            else
+                failure = "Some crazy crap occurred, apologies.";
+            Status.Text = failure ?? "Done";
             try
             {
-                Status.Text = "Completed. Disconnecting...";
                 await adapter.DisconnectDeviceAsync(tdh3);
-                Status.Text = "Disconnected.";
             }
             catch { }
-            ConnectButton.IsEnabled = true;
+            ChannelRead.IsEnabled = true;
+            ChannelWrite.IsEnabled = true;
             StartScan.IsEnabled = true;
             Activity.IsRunning = false;
+            ChannelView.IsEnabled = true;
+            Devices.IsEnabled = true;
+
+        }
+
+        private async Task ReadChannels()
+        {
+            var adapter = CrossBluetoothLE.Current.Adapter;
+            string? failure = null;
+            if (reader != null && writer != null && tdh3 != null)
+            {
+                for (int chan = 1; chan < 199; chan++)
+                {
+                    Status.Text = $"Reading Channel {chan}.";
+                    try
+                    {
+                        await writer.WriteAsync([0x30, (byte)(chan + 1)]);
+                    }
+                    catch 
+                    {
+                        failure = "Communication exception";
+                        break;
+                    }
+                    if (await GetByte() != 0x30)
+                    {
+                        failure = "No Block Read ACK.";
+                        break;
+                    }
+                    byte[] channelData = Channel.Get(chan).Data;
+                    byte cs = 0;
+                    for (int i = 0; i < channelData.Length; i++)
+                    {
+                        int b = await GetByte();
+                        if (b == -1)
+                        {
+                            failure = "Timeout during channel read.";
+                            break;
+                        }
+                        cs += (byte)b;
+                        channelData[i] = (byte)b;
+                    }
+                    if (failure != null) break;
+                    if (await GetByte() != cs)
+                    {
+                        failure = "Bad checksum in channel data.";
+                        break;
+                    }
+                }
+                try
+                {
+                    await writer.WriteAsync([0x46]);
+                    if (await GetByte() != 0x46)
+                        failure = "No End Handshake ACK.";
+                }
+                catch { }
+            }
+            else
+                failure = "Some goofy shit happened, sorry.";
+            Status.Text = failure ?? "Done";
+            try
+            {
+                await adapter.DisconnectDeviceAsync(tdh3);
+            }
+            catch { }
+            ChannelRead.IsEnabled = true;
+            ChannelWrite.IsEnabled = true;
+            StartScan.IsEnabled = true;
+            Activity.IsRunning = false;
+            ChannelView.IsEnabled = true;
             Devices.IsEnabled = true;
         }
 
-        private static string Groups(int groupw)
+        private async void ChannelView_Clicked(object sender, EventArgs e)
         {
-            string s = string.Empty;
-            for (int i = 0; i < 4; i++)
-            {
-                int nyb = groupw & 0xf;
-                groupw >>= 4;
-                if (nyb == 0)
-                    s += "-";
-                else
-                    s += (char)(nyb + 64);
-            }
-            return s;
-        }
-
-        private static string Modulation(int mod)
-        {
-            return mod switch
-            {
-                0 => "Auto",
-                1 => "FM",
-                2 => "AM",
-                3 => "USB",
-                _ => "Fook Knows",
-            };
-        }
-
-        private static string SubTone(int st)
-        {
-            if (st == 0) return "Off";
-            if (st < 0x8000) return $"{st / 10.0:F1}";
-            return $"D{Convert.ToString(st & 0x3fff, 8).PadLeft(3, '0')}{((st & 0x4000) == 0 ? 'N' : 'I')}";
+            await Navigation.PushAsync(new ChannelEditor());
         }
 
         private async Task<int> GetByte()
