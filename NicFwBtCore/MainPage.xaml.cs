@@ -215,11 +215,25 @@ namespace NicFwBtCore
                     Channel channel = Channel.Get(chan);
                     try
                     {
-                        await writer.WriteAsync([0x31, (byte)(chan + 1)]);
-                        await writer.WriteAsync(channel.Data);
+                        writer.WriteType = Plugin.BLE.Abstractions.CharacteristicWriteType.WithoutResponse;
+                        //byte cs = 0;
+                        //foreach (byte byt in channel.Data)
+                        //{
+                        //    await writer.WriteAsync([byt]);
+                        //    cs += byt;
+                        //}
+                        //await writer.WriteAsync([0x31, (byte)(chan + 1), .. channel.Data, cs]);
+                        
+                        //await writer.WriteAsync([0x31, (byte)(chan + 1)]);
+                        //await writer.WriteAsync(channel.Data);
+                        await writer.WriteAsync([0x31]);
+                        await writer.WriteAsync([(byte)(chan + 1)]);
                         byte cs = 0;
-                        foreach(byte b in channel.Data)
-                            cs += b;
+                        foreach (byte byt in channel.Data)
+                        {
+                            await writer.WriteAsync([byt]);
+                            cs += byt;
+                        }
                         await writer.WriteAsync([cs]);
                         int ack = await GetByte();
                         if (ack != 0x31)
