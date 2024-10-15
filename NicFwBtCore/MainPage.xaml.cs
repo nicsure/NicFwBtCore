@@ -216,16 +216,6 @@ namespace NicFwBtCore
                     try
                     {
                         writer.WriteType = Plugin.BLE.Abstractions.CharacteristicWriteType.WithoutResponse;
-                        //byte cs = 0;
-                        //foreach (byte byt in channel.Data)
-                        //{
-                        //    await writer.WriteAsync([byt]);
-                        //    cs += byt;
-                        //}
-                        //await writer.WriteAsync([0x31, (byte)(chan + 1), .. channel.Data, cs]);
-                        
-                        //await writer.WriteAsync([0x31, (byte)(chan + 1)]);
-                        //await writer.WriteAsync(channel.Data);
                         await writer.WriteAsync([0x31]);
                         await writer.WriteAsync([(byte)(chan + 1)]);
                         byte cs = 0;
